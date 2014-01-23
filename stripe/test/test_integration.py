@@ -366,6 +366,21 @@ class CustomerPlanTest(StripeTestCase):
                                           trial_end=trial_end_int)
         self.assertTrue(customer.id)
 
+    def test_newstyle_subscription_create_update_cancel(self):
+        customer = stripe.Customer.create(card=DUMMY_CARD)
+
+        sub = customer.subscriptions.create(plan=DUMMY_PLAN['id'])
+        self.assertEqual(DUMMY_PLAN['id'], sub.plan.id)
+
+        sub.quantity = 2
+        sub.save()
+        self.assertEqual(customer.subscriptions.retrieve(sub.id).quantity, 2)
+
+        sub.delete(at_period_end=True)
+        self.assertTrue(customer.subscriptions.retrieve(sub.id).cancel_at_period_end)
+
+        self.assertEqual(sub.delete().status, 'canceled')
+
 
 class InvoiceTest(StripeTestCase):
 

@@ -341,6 +341,29 @@ class Card(UpdateableAPIResource, DeletableAPIResource):
             "Can't retrieve a card without a customer ID. Use "
             "customer.cards.retrieve('card_id') instead.")
 
+class Subscription(UpdateableAPIResource, DeletableAPIResource):
+
+    def instance_url(self):
+        self.id = util.utf8(self.id)
+        self.customer = util.utf8(self.customer)
+
+        base = Customer.class_url()
+        cust_extn = urllib.quote_plus(self.customer)
+        extn = urllib.quote_plus(self.id)
+
+        return "%s/%s/subscriptions/%s" % (base, cust_extn, extn)
+
+    @classmethod
+    def retrieve(cls, id, api_key=None, **params):
+        raise NotImplementedError(
+            "Can't retrieve a subscription without a customer ID. Use "
+            "customer.subscriptions.retrieve('subscription_id') instead.")
+
+    def delete_discount(self, **params):
+        requestor = api_requestor.APIRequestor(self.api_key)
+        url = self.instance_url() + '/discount'
+        _, api_key = requestor.request('delete', url)
+        self.refresh_from({'discount': None}, api_key, True)
 
 class Charge(CreateableAPIResource, ListableAPIResource,
              UpdateableAPIResource):
@@ -393,6 +416,7 @@ class Customer(CreateableAPIResource, UpdateableAPIResource,
         charges = Charge.all(self.api_key, **params)
         return charges
 
+    # Legacy (before multiple subscriptions per customer)
     def update_subscription(self, **params):
         requestor = api_requestor.APIRequestor(self.api_key)
         url = self.instance_url() + '/subscription'
@@ -400,6 +424,7 @@ class Customer(CreateableAPIResource, UpdateableAPIResource,
         self.refresh_from({'subscription': response}, api_key, True)
         return self.subscription
 
+    # Legacy (before multiple subscriptions per customer)
     def cancel_subscription(self, **params):
         requestor = api_requestor.APIRequestor(self.api_key)
         url = self.instance_url() + '/subscription'
